@@ -116,10 +116,11 @@ function renderData(data) {
   const leads = data.leads || [];
   document.getElementById('loading').style.display = 'none';
 
+  const label = l => (l.scoreLabel || '').toLowerCase();
   document.getElementById('stat-total').textContent = data.total || 0;
-  document.getElementById('stat-hot').textContent = leads.filter(l => l.scoreColor === 'green').length;
-  document.getElementById('stat-warm').textContent = leads.filter(l => l.scoreColor === 'yellow').length;
-  document.getElementById('stat-cold').textContent = leads.filter(l => l.scoreColor === 'red').length;
+  document.getElementById('stat-hot').textContent = leads.filter(l => label(l).includes('caliente') || label(l).includes('visita')).length;
+  document.getElementById('stat-warm').textContent = leads.filter(l => label(l).includes('tibio')).length;
+  document.getElementById('stat-cold').textContent = leads.filter(l => label(l).includes('frio') || label(l).includes('frío')).length;
   document.getElementById('stat-frozen').textContent = leads.filter(l => l.congelado).length;
 
   if (leads.length === 0) {
@@ -131,25 +132,24 @@ function renderData(data) {
   tbody.innerHTML = '';
 
   leads.forEach(lead => {
-    const scoreColor = { green: '#4ade80', yellow: '#facc15', red: '#f87171' }[lead.scoreColor] || '#94a3b8';
-    const pct = Math.min(100, (lead.score || 0));
+    const color = lead.scoreColor || '#94a3b8';
     const ts = lead.timestamp ? new Date(lead.timestamp).toLocaleString('es-MX', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+    const lbl = label(lead);
+    const nombre = (lead.nombre && lead.nombre !== lead.clave) ? lead.nombre : '—';
+    const telefono = lead.telefono || lead.clave || '—';
 
     let estadoBadge = '';
     if (lead.congelado) estadoBadge = '<span class="badge badge-frozen">Congelado</span>';
-    else if (lead.estado === 'visita') estadoBadge = '<span class="badge badge-green">Visita</span>';
-    else if (lead.scoreColor === 'green') estadoBadge = '<span class="badge badge-green">Caliente</span>';
-    else if (lead.scoreColor === 'yellow') estadoBadge = '<span class="badge badge-yellow">Tibio</span>';
-    else estadoBadge = '<span class="badge badge-red">Frío</span>';
+    else if (lbl.includes('visita')) estadoBadge = '<span class="badge badge-green">Visita</span>';
+    else if (lbl.includes('caliente')) estadoBadge = '<span class="badge badge-green">Caliente</span>';
+    else if (lbl.includes('tibio')) estadoBadge = '<span class="badge badge-yellow">Tibio</span>';
+    else estadoBadge = `<span class="badge badge-gray">${lead.scoreLabel || 'Nuevo'}</span>`;
 
     tbody.innerHTML += `
       <tr>
-        <td>${lead.nombre || lead.clave || '—'}</td>
-        <td class="phone">${lead.telefono || '—'}</td>
-        <td>
-          <span style="color:${scoreColor};font-weight:600">${lead.score || 0}</span>
-          <span class="score-bar"><span class="score-fill" style="width:${pct}%;background:${scoreColor}"></span></span>
-        </td>
+        <td>${nombre}</td>
+        <td class="phone">${telefono}</td>
+        <td><span style="color:${color};font-weight:700;font-size:1rem">${lead.score || '—'}</span></td>
         <td>${estadoBadge}</td>
         <td>${lead.mensajes || 0}</td>
         <td class="ts">${ts}</td>
