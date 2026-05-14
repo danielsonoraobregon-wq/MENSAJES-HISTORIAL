@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - Privada Encino</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+  #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-box { background: #1e293b; border-radius: 12px; padding: 40px; width: 340px; border: 1px solid #334155; }
+  .login-box h1 { font-size: 1.5rem; margin-bottom: 6px; color: #f1f5f9; }
+  .login-box p { color: #94a3b8; font-size: 0.875rem; margin-bottom: 28px; }
+  .login-box input { width: 100%; padding: 12px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #f1f5f9; font-size: 1rem; margin-bottom: 16px; outline: none; }
+  .login-box input:focus { border-color: #3b82f6; }
+  .login-box button { width: 100%; padding: 12px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; }
+  .login-box button:hover { background: #2563eb; }
+  #login-error { color: #f87171; font-size: 0.875rem; margin-top: 10px; display: none; }
+
+  #dashboard { display: none; }
+  .topbar { background: #1e293b; border-bottom: 1px solid #334155; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar h1 { font-size: 1.1rem; font-weight: 700; }
+  .topbar span { color: #64748b; font-size: 0.875rem; }
+  .topbar button { background: #ef4444; border: none; color: white; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.875rem; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; padding: 24px; }
+  .stat-card { background: #1e293b; border-radius: 10px; padding: 20px; border: 1px solid #334155; }
+  .stat-card .label { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .stat-card .value { font-size: 2rem; font-weight: 700; color: #f1f5f9; }
+
+  .table-wrap { padding: 0 24px 24px; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .table-header h2 { font-size: 1rem; font-weight: 600; }
+  .refresh-btn { background: #334155; border: none; color: #94a3b8; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 0.875rem; }
+  .refresh-btn:hover { background: #475569; color: #f1f5f9; }
+
+  table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 10px; overflow: hidden; border: 1px solid #334155; }
+  th { background: #0f172a; color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px; text-align: left; }
+  td { padding: 13px 16px; border-top: 1px solid #1e293b; font-size: 0.9rem; }
+  tr:nth-child(even) td { background: #1a2638; }
+  tr:hover td { background: #243448; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+  .badge-green { background: #14532d; color: #4ade80; }
+  .badge-yellow { background: #713f12; color: #facc15; }
+  .badge-red { background: #7f1d1d; color: #f87171; }
+  .badge-gray { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+  .badge-frozen { background: #1e3a5f; color: #60a5fa; }
+
+  .score-bar { width: 60px; height: 6px; border-radius: 3px; background: #334155; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 8px; }
+  .score-fill { height: 100%; border-radius: 3px; }
+
+  #loading { text-align: center; padding: 60px; color: #64748b; }
+  #empty { text-align: center; padding: 60px; color: #64748b; display: none; }
+  .ts { color: #64748b; font-size: 0.8rem; }
+  .phone { font-family: monospace; color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <h1>Privada Encino</h1>
+    <p>Panel de administración</p>
+    <input type="password" id="pwd-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()" autofocus>
+    <button onclick="doLogin()">Entrar</button>
+    <div id="login-error">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<div id="dashboard">
+  <div class="topbar">
+    <h1>Dashboard — Privada Encino</h1>
+    <div style="display:flex;gap:12px;align-items:center">
+      <span id="last-update"></span>
+      <button onclick="logout()">Salir</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card"><div class="label">Total leads</div><div class="value" id="stat-total">—</div></div>
+    <div class="stat-card"><div class="label">Calientes</div><div class="value" style="color:#4ade80" id="stat-hot">—</div></div>
+    <div class="stat-card"><div class="label">Tibios</div><div class="value" style="color:#facc15" id="stat-warm">—</div></div>
+    <div class="stat-card"><div class="label">Fríos</div><div class="value" style="color:#f87171" id="stat-cold">—</div></div>
+    <div class="stat-card"><div class="label">Congelados</div><div class="value" style="color:#60a5fa" id="stat-frozen">—</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <h2>Conversaciones</h2>
+      <button class="refresh-btn" onclick="loadData()">↻ Actualizar</button>
+    </div>
+    <div id="loading">Cargando datos...</div>
+    <div id="empty">No hay leads registrados aún.</div>
+    <table id="leads-table" style="display:none">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th>Score</th>
+          <th>Estado</th>
+          <th>Mensajes</th>
+          <th>Último mensaje</th>
+        </tr>
+      </thead>
+      <tbody id="leads-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const SECRET = 'daniel2024';
+let authed = false;
+
+function doLogin() {
+  const val = document.getElementById('pwd-input').value;
+  if (val === SECRET) {
+    authed = true;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadData();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+
+function logout() {
+  authed = false;
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('pwd-input').value = '';
+}
+
+async function loadData() {
+  if (!authed) return;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('leads-table').style.display = 'none';
+  document.getElementById('empty').style.display = 'none';
+
+  try {
+    const res = await fetch('/dashboard?secret=' + SECRET);
+    if (!res.ok) throw new Error('Error ' + res.status);
+    const data = await res.json();
+    renderData(data);
+    document.getElementById('last-update').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-MX');
+  } catch (e) {
+    document.getElementById('loading').textContent = 'Error al cargar datos: ' + e.message;
+  }
+}
+
+function renderData(data) {
+  const leads = data.leads || [];
+  document.getElementById('loading').style.display = 'none';
+
+  document.getElementById('stat-total').textContent = data.total || 0;
+  document.getElementById('stat-hot').textContent = leads.filter(l => l.scoreColor === 'green').length;
+  document.getElementById('stat-warm').textContent = leads.filter(l => l.scoreColor === 'yellow').length;
+  document.getElementById('stat-cold').textContent = leads.filter(l => l.scoreColor === 'red').length;
+  document.getElementById('stat-frozen').textContent = leads.filter(l => l.congelado).length;
+
+  if (leads.length === 0) {
+    document.getElementById('empty').style.display = 'block';
+    return;
+  }
+
+  const tbody = document.getElementById('leads-body');
+  tbody.innerHTML = '';
+
+  leads.forEach(lead => {
+    const scoreColor = { green: '#4ade80', yellow: '#facc15', red: '#f87171' }[lead.scoreColor] || '#94a3b8';
+    const pct = Math.min(100, (lead.score || 0));
+    const ts = lead.timestamp ? new Date(lead.timestamp).toLocaleString('es-MX', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+
+    let estadoBadge = '';
+    if (lead.congelado) estadoBadge = '<span class="badge badge-frozen">Congelado</span>';
+    else if (lead.estado === 'visita') estadoBadge = '<span class="badge badge-green">Visita</span>';
+    else if (lead.scoreColor === 'green') estadoBadge = '<span class="badge badge-green">Caliente</span>';
+    else if (lead.scoreColor === 'yellow') estadoBadge = '<span class="badge badge-yellow">Tibio</span>';
+    else estadoBadge = '<span class="badge badge-red">Frío</span>';
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${lead.nombre || lead.clave || '—'}</td>
+        <td class="phone">${lead.telefono || '—'}</td>
+        <td>
+          <span style="color:${scoreColor};font-weight:600">${lead.score || 0}</span>
+          <span class="score-bar"><span class="score-fill" style="width:${pct}%;background:${scoreColor}"></span></span>
+        </td>
+        <td>${estadoBadge}</td>
+        <td>${lead.mensajes || 0}</td>
+        <td class="ts">${ts}</td>
+      </tr>`;
+  });
+
+  document.getElementById('leads-table').style.display = 'table';
+}
+
+setInterval(() => { if (authed) loadData(); }, 60000);
+</script>
+</body>
+</html>
